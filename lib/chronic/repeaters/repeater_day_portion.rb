@@ -112,7 +112,6 @@ module Chronic
     def adjust_with_offset(now, adjustment = 0, range)
       initial = Chronic.construct(now.year, now.month, now.day) + adjustment.days
       final = initial + range.begin
-      puts final + initial.utc_offset.seconds - final.utc_offset.seconds
       final + initial.utc_offset.seconds - final.utc_offset.seconds
     end
   end
