@@ -1,3 +1,5 @@
+require 'active_support/time'
+
 module Chronic
   class RepeaterDayPortion < Repeater #:nodoc:
     PORTIONS = {
@@ -12,42 +14,43 @@ module Chronic
     def initialize(type, width = nil, options = {})
       super
       @current_span = nil
-
+      
       if type.kind_of? Integer
         @range = (@type * 60 * 60)..((@type + 12) * 60 * 60)
       else
         @range = PORTIONS[type]
         @range || raise("Invalid type '#{type}' for RepeaterDayPortion")
       end
-
+      puts @range
       @range || raise('Range should have been set by now')
     end
 
     def next(pointer)
       super
-
+      puts pointer
+      puts @now
       unless @current_span
         now_seconds = @now - Chronic.construct(@now.year, @now.month, @now.day)
         if now_seconds < @range.begin
           case pointer
           when :future
-            range_start = Chronic.construct(@now.year, @now.month, @now.day) + @range.begin
+            range_start = adjust_with_offset(@now, 0, @range)
           when :past
-            range_start = Chronic.construct(@now.year, @now.month, @now.day - 1) + @range.begin
+            range_start = adjust_with_offset(@now, -1, @range)
           end
         elsif now_seconds > @range.end
           case pointer
           when :future
-            range_start = Chronic.construct(@now.year, @now.month, @now.day + 1) + @range.begin
+            range_start = adjust_with_offset(@now, +1, @range)
           when :past
-            range_start = Chronic.construct(@now.year, @now.month, @now.day) + @range.begin
+            range_start = adjust_with_offset(@now, 0, @range)
           end
         else
           case pointer
           when :future
-            range_start = Chronic.construct(@now.year, @now.month, @now.day + 1) + @range.begin
+            range_start = adjust_with_offset(@now, +1, @range)
           when :past
-            range_start = Chronic.construct(@now.year, @now.month, @now.day - 1) + @range.begin
+            range_start = adjust_with_offset(@now, -1, @range)
           end
         end
         offset = (@range.end - @range.begin)
@@ -71,7 +74,7 @@ module Chronic
     def this(context = :future)
       super
 
-      range_start = Chronic.construct(@now.year, @now.month, @now.day) + @range.begin
+      range_start = adjust_with_offset(@now, 0, @range)
       range_end = construct_date_from_reference_and_offset(range_start)
       @current_span = Span.new(range_start, range_end)
     end
@@ -104,6 +107,14 @@ module Chronic
       minute_hand = (elapsed_seconds_for_range - second_hand) / (60) % 60
       hour_hand = (elapsed_seconds_for_range - minute_hand - second_hand) / (60 * 60) + reference.hour % 24
       Chronic.construct(reference.year, reference.month, reference.day, hour_hand, minute_hand, second_hand)
+    end
+    
+    # Uses Time#utc_offset to account for time gain/loss across Daylight Savings Time change boundaries
+    def adjust_with_offset(now, adjustment = 0, range)
+      initial = Chronic.construct(now.year, now.month, now.day) + adjustment.days
+      final = initial + range.begin
+      puts final + initial.utc_offset.seconds - final.utc_offset.seconds
+      final + initial.utc_offset.seconds - final.utc_offset.seconds
     end
   end
 end
