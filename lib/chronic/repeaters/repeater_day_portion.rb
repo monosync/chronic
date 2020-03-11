@@ -21,14 +21,13 @@ module Chronic
         @range = PORTIONS[type]
         @range || raise("Invalid type '#{type}' for RepeaterDayPortion")
       end
-      puts @range
+
       @range || raise('Range should have been set by now')
     end
 
     def next(pointer)
       super
-      puts pointer
-      puts @now
+
       unless @current_span
         now_seconds = @now - Chronic.construct(@now.year, @now.month, @now.day)
         if now_seconds < @range.begin
